@@ -17,43 +17,46 @@ class Context(object):
 VALID_TEST_REQUEST = {
     "remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
+    "bastion_user": "user"
+}
+
+VALID_TEST_REQUEST_OPTIONAL_FIELDS = {
+    "remote_usernames": "user",
+    "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
     "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user_ip": "127.0.0.1",
+    "bastion_ips": "127.0.0.1"
 }
 
 VALID_TEST_REQUEST_ED2551 = {
     "remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_ED25519_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "user"
 }
 
 VALID_TEST_REQUEST_USERNAME_VALIDATION_EMAIL_REMOTE_USERNAMES_USERADD = {
     "remote_usernames": "user,anotheruser",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "someone@example.com",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "someone@example.com"
 }
 
 VALID_TEST_REQUEST_USERNAME_VALIDATION_DISABLED = {
     "remote_usernames": "'~:, \n\t@'",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "a33characterusernameyoumustbenuts",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "a33characterusernameyoumustbenuts"
+}
+
+VALID_TEST_REQUEST_MULTIPLE_IPS = {
+    "remote_usernames": "user",
+    "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
+    "bastion_user": "user",
+    "bastion_user_ip": "127.0.0.1",
+    "bastion_ips": "127.0.0.1,127.0.1.1"
 }
 
 INVALID_TEST_REQUEST = {
     "remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
     "bastion_ips": "invalid_ip",
     "bastion_user": "user",
     "bastion_user_ip": "invalid_ip"
@@ -62,104 +65,74 @@ INVALID_TEST_REQUEST = {
 VALID_TEST_REQUEST_KMSAUTH = {
     "remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
     "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1",
     "kmsauth_token": "validkmsauthtoken",
 }
 
 INVALID_TEST_REQUEST_KEY_TYPE = {
     "remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_ECDSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "user"
 }
 
 INVALID_TEST_REQUEST_EXTRA_FIELD = {
     "remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
     "bastion_ips": "127.0.0.1",
     "bastion_user": "user",
     "bastion_user_ip": "127.0.0.1",
     "bastion_ip": "127.0.0.1"  # Note this is now an invalid field.
 }
 
-INVALID_TEST_REQUEST_MISSING_FIELD = {
-    "remote_usernames": "user",
+INVALID_TEST_REQUEST_MISSING_REQUIRED_FIELD = {
+    #"remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "user"
 }
 
 VALID_TEST_REQUEST_MULTIPLE_PRINCIPALS = {
     "remote_usernames": "user1,user2",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "user"
 }
 
 INVALID_TEST_REQUEST_MULTIPLE_PRINCIPALS = {
     "remote_usernames": ",user#",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "user"
 }
 
 INVALID_TEST_REQUEST_USERNAME_INVALID = {
     "remote_usernames": "user",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "~@.",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "~@."
 }
 
 INVALID_TEST_KMSAUTH_REQUEST_USERNAME_DOESNT_MATCH_REMOTE = {
     "remote_usernames": "userb",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
     "bastion_user": "usera",
-    "bastion_user_ip": "127.0.0.1",
     "kmsauth_token": "validkmsauthtoken"
 }
 
 INVALID_TEST_KMSAUTH_REQUEST_DIFFERENT_REMOTE_USER = {
     "remote_usernames": "root",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
     "bastion_user": "usera",
-    "bastion_user_ip": "127.0.0.1",
     "kmsauth_token": "validkmsauthtoken"
 }
 
 VALID_TEST_KMSAUTH_REQUEST_DIFFERENT_REMOTE_USER = {
     "remote_usernames": "alloweduser",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
     "bastion_user": "usera",
-    "bastion_user_ip": "127.0.0.1",
     "kmsauth_token": "validkmsauthtoken"
 }
 
 INVALID_TEST_REQUEST_BLACKLISTED_REMOTE_USERNAME = {
     "remote_usernames": "alloweduser,balrog",
     "public_key_to_sign": EXAMPLE_RSA_PUBLIC_KEY,
-    "command": "ssh user@server",
-    "bastion_ips": "127.0.0.1",
-    "bastion_user": "user",
-    "bastion_user_ip": "127.0.0.1"
+    "bastion_user": "user"
 }
 
 
@@ -173,6 +146,14 @@ def test_basic_local_request_with_wrapper():
 
 def test_basic_local_request():
     output = lambda_handler_user(VALID_TEST_REQUEST, context=Context,
+                            ca_private_key_password=RSA_CA_PRIVATE_KEY_PASSWORD,
+                            entropy_check=False,
+                            config_file=os.path.join(os.path.dirname(__file__), 'bless-test.cfg'))
+    assert output['certificate'].startswith('ssh-rsa-cert-v01@openssh.com ')
+
+
+def test_basic_local_request_with_optional_fields():
+    output = lambda_handler_user(VALID_TEST_REQUEST_OPTIONAL_FIELDS, context=Context,
                             ca_private_key_password=RSA_CA_PRIVATE_KEY_PASSWORD,
                             entropy_check=False,
                             config_file=os.path.join(os.path.dirname(__file__), 'bless-test.cfg'))
@@ -202,6 +183,14 @@ def test_basic_local_missing_kmsauth_request():
                             config_file=os.path.join(os.path.dirname(__file__),
                                                      'bless-test-kmsauth.cfg'))
     assert output['errorType'] == 'InputValidationError'
+
+
+def test_basic_local_request_with_multiple_bastion_ips():
+    output = lambda_handler_user(VALID_TEST_REQUEST_MULTIPLE_IPS, context=Context,
+                            ca_private_key_password=RSA_CA_PRIVATE_KEY_PASSWORD,
+                            entropy_check=False,
+                            config_file=os.path.join(os.path.dirname(__file__), 'bless-test.cfg'))
+    assert output['certificate'].startswith('ssh-rsa-cert-v01@openssh.com ')
 
 
 def test_basic_local_username_validation_disabled(monkeypatch):
@@ -432,10 +421,10 @@ def test_local_request_extra_field():
 
 
 def test_local_request_missing_field():
-    output = lambda_handler_user(INVALID_TEST_REQUEST_MISSING_FIELD, context=Context,
-                            ca_private_key_password=RSA_CA_PRIVATE_KEY_PASSWORD,
-                            entropy_check=False,
-                            config_file=os.path.join(os.path.dirname(__file__), 'bless-test.cfg'))
+    output = lambda_handler_user(INVALID_TEST_REQUEST_MISSING_REQUIRED_FIELD, context=Context,
+                                 ca_private_key_password=RSA_CA_PRIVATE_KEY_PASSWORD,
+                                 entropy_check=False,
+                                 config_file=os.path.join(os.path.dirname(__file__), 'bless-test.cfg'))
     assert output['errorType'] == 'InputValidationError'
 
 
