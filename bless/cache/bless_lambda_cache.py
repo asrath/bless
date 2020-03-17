@@ -4,11 +4,15 @@
     :license: Apache, see LICENSE for more details.
 """
 import base64
+import logging
 import os
 
 import boto3
-from bless.config.bless_config import BlessConfig
 from botocore.exceptions import ClientError
+
+from bless.config.bless_config import BlessConfig
+
+logger = logging.getLogger()
 
 
 class BlessLambdaCache:
@@ -44,6 +48,7 @@ class BlessLambdaCache:
                     CiphertextBlob=base64.b64decode(password_ciphertext_b64))
                 self.ca_private_key_password = ca_password['Plaintext']
             except ClientError as e:
+                logger.exception(e)
                 self.ca_private_key_password_error = str(e)
         else:
             self.ca_private_key_password = ca_private_key_password

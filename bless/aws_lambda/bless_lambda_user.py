@@ -77,11 +77,11 @@ def lambda_handler_user(
     except ValidationError as e:
         return error_response('InputValidationError', str(e))
 
-    logger.info('Bless lambda invoked by [user: {0}, bastion_ips:{1}, public_key: {2}, kmsauth_token:{3}]'.format(
-        request.bastion_user,
-        request.bastion_user_ip,
-        request.public_key_to_sign,
-        request.kmsauth_token))
+    msg = f'Bless lambda invoked by [user: {request.bastion_user}'
+    if request.bastion_user_ip is not None:
+        msg = f'{msg}, {request.bastion_user_ip}'
+    msg = f'{msg}, public_key: {request.public_key_to_sign}, kmsauth_token:{request.kmsauth_token}]'
+    logger.info(msg)
 
     # Make sure we have the ca private key password
     if bless_cache.ca_private_key_password is None:
@@ -177,17 +177,24 @@ def lambda_handler_user(
         cert_builder.clear_extensions()
 
     # cert_builder is needed to obtain the SSH public key's fingerprint
-    key_id = 'request[{}] for[{}] from[{}] command[{}] ssh_key[{}]  ca[{}] valid_to[{}]'.format(
-        context.aws_request_id, request.bastion_user, request.bastion_user_ip, request.command,
-        cert_builder.ssh_public_key.fingerprint, context.invoked_function_arn,
-        time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(valid_before)))
-    cert_builder.set_critical_option_source_addresses(request.bastion_ips)
+    valid_to = time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(valid_before))
+    key_id = f'request[{context.aws_request_id}] for[{request.bastion_user}]'
+    if request.bastion_user_ip is not None:
+        key_id = f'{key_id} from[{request.bastion_user_ip}]'
+
+    key_id = f'{key_id} ssh_key[{cert_builder.ssh_public_key.fingerprint}]  ca[{context.invoked_function_arn}] valid_to[{valid_to}]'
+    if request.bastion_ips is not None:
+        cert_builder.set_critical_option_source_addresses(request.bastion_ips)
     cert_builder.set_key_id(key_id)
     cert = cert_builder.get_cert_file(bypass_time_validity_check)
 
-    logger.info(
-        'Issued a cert to bastion_ips[{}] for remote_usernames[{}] with key_id[{}] and '
-        'valid_from[{}])'.format(
-            request.bastion_ips, request.remote_usernames, key_id,
-            time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(valid_after))))
+    valid_from = time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(valid_after))
+    if request.bastion_ips is not None:
+        msg = f'Issued a cert to bastion_ips[{request.bastion_ips}]'
+    else:
+        msg = 'Issued a cert'
+
+    msg = f'{msg} for remote_usernames[{request.remote_usernames}] with key_id[{key_id}] and valid_from[{valid_from}]'
+
+    logger.info(msg)
     return success_response(cert)

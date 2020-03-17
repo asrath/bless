@@ -4,8 +4,9 @@
 A sample client to invoke the BLESS Lambda function and save the signed SSH Certificate.
 
 Usage:
-  bless_client.py region lambda_function_name bastion_user bastion_user_ip remote_usernames
-  bastion_ips bastion_command <id_rsa.pub to sign> <output id_rsa-cert.pub>
+  bless_client.py region lambda_function_name bastion_user remote_usernames
+  bastion_command <id_rsa.pub to sign> <output id_rsa-cert.pub>
+  [kmsauth] [bastion_user_ip] [bastion_ips]
 
     region: AWS region where your lambda is deployed.
 
@@ -40,25 +41,32 @@ import boto3
 
 
 def main(argv):
-    if len(argv) < 9 or len(argv) > 10:
+    if len(argv) < 6 or len(argv) > 9:
         print(
-            'Usage: bless_client.py region lambda_function_name bastion_user bastion_user_ip '
-            'remote_usernames bastion_ips bastion_command <id_rsa.pub to sign> '
-            '<output id_rsa-cert.pub> [kmsauth token]')
+            'Usage: bless_client.py region lambda_function_name bastion_user '
+            'remote_usernames <id_rsa.pub to sign> '
+            '<output id_rsa-cert.pub> [kmsauth token] [bastion_user_ip] [bastion_source_ip, ...]'
+        )
         return -1
 
-    region, lambda_function_name, bastion_user, bastion_user_ip, remote_usernames, bastion_ips, \
-        bastion_command, public_key_filename, certificate_filename = argv[:9]
+    region, lambda_function_name, bastion_user, remote_usernames, \
+        public_key_filename, certificate_filename = argv[:6]
 
     with open(public_key_filename, 'r') as f:
         public_key = f.read().strip()
 
-    payload = {'bastion_user': bastion_user, 'bastion_user_ip': bastion_user_ip,
-               'remote_usernames': remote_usernames, 'bastion_ips': bastion_ips,
-               'command': bastion_command, 'public_key_to_sign': public_key}
+    payload = {'bastion_user': bastion_user,
+               'remote_usernames': remote_usernames,
+               'public_key_to_sign': public_key}
 
-    if len(argv) == 10:
-        payload['kmsauth_token'] = argv[9]
+    if len(argv) == 7:
+        payload['kmsauth_token'] = argv[6]
+
+    if len(argv) == 8:
+        payload['bastion_user_ip'] = argv[7]
+
+    if len(argv) == 9:
+        payload['bastion_ips'] = argv[8]
 
     payload_json = json.dumps(payload)
 

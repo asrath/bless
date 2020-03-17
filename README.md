@@ -71,29 +71,24 @@ BLESS uses a docker container running [Amazon Linux 2](https://hub.docker.com/_/
 
 ### Protecting the CA Private Key
 - Generate a password protected RSA Private Key in the PEM format:
-```
-$ ssh-keygen -t rsa -b 4096 -m PEM -f bless-ca- -C "SSH CA Key"
+```shell
+$ ssh-keygen -t rsa -b 4096 -m PEM -f cas -C "SSH CA Key"
 ```
 - **Note:** OpenSSH Private Key format is not supported.
 - Use KMS to encrypt your password.  You will need a KMS key per region, and you will need to
-encrypt your password for each region.  You can use the AWS Console to paste in a simple lambda
-function like this:
-```
-import boto3
-import base64
-import os
+encrypt your password for each region.  You can use the AWS CLI like this:
+```shell
+REGION=eu-west-1
+aws kms create-alias \
+            --region $REGION \
+            --alias-name alias/bless \
+            --target-key-id \
+$(aws kms create-key --region $REGION | jq -r .KeyMetadata.KeyId)
 
-
-def lambda_handler(event, context):
-    region = os.environ['AWS_REGION']
-    client = boto3.client('kms', region_name=region)
-    response = client.encrypt(
-    KeyId='alias/your_kms_key',
-    Plaintext='Do not forget to delete the real plain text when done'
-    )
-
-    ciphertext = response['CiphertextBlob']
-    return base64.b64encode(ciphertext)
+aws kms encrypt \
+    --key-id $(aws kms describe-key --region $REGION --key-id alias/bless | jq -r .KeyMetadata.KeyId) \
+    --plaintext somepassword \
+    --region $REGION | jq -r .CiphertextBlob
 ```
 
 - Manage your Private Keys .pem files and passwords outside of this repo.
@@ -126,8 +121,8 @@ as section_name_option_name (all lowercase, spaces replaced with underscores).
 ./lambda_configs/bless_deploy.cfg prior to Publishing
 - Provide the [compiled dependencies](#compiling-bless-lambda-dependencies) at ./aws_lambda_libs
 - run:
-```
-(venv) $ make publish
+```shell
+(venv) $ rm -rf publish && make publish && aws lambda update-function-code --function-name FUNCTION_NAME --zip-file fileb://$(pwd)/publish/bless_lambda.zip
 ```
 
 - deploy ./publish/bless_lambda.zip to AWS via the AWS Console,
@@ -152,13 +147,19 @@ from a system with access to the required [AWS Credentials](http://boto3.readthe
 This client is really just a proof of concept to validate that you have a functional lambda being called with valid
 IAM credentials. 
 
-    (venv) $ ./bless_client.py region lambda_function_name bastion_user bastion_user_ip remote_usernames bastion_source_ip bastion_command <id_rsa.pub to sign> <output id_rsa-cert.pub>
-
+    (venv) $ ./bless_client.py region lambda_function_name bastion_user remote_usernames <id_rsa.pub to sign> <output id_rsa-cert.pub> [kmsauth] [bastion_user_ip] [bastion_source_ip]
 
 ## Verifying Certificates
 You can inspect the contents of a certificate with ssh-keygen directly:
 
     $ ssh-keygen -L -f your-cert.pub
+    
+## setup cert-authority in clients
+
+```shell
+REGION=eu-west-1
+echo "@cert-authority *.$REGION.compute.amazonaws.com $(cat /path/to/downloaded/cas.pub)" > ~/.ssh/known_hosts
+```
 
 ## Enabling BLESS Certificates On Servers
 Add the following line to `/etc/ssh/sshd_config`:
@@ -179,3 +180,4 @@ Additional information about the TrustedUserCAKeys file is [here](https://www.fr
 ## Project resources
 - Source code <https://github.com/netflix/bless>
 - Issue tracker <https://github.com/netflix/bless/issues>
+- Step by step: <https://medium.com/swlh/run-netflix-bless-ssh-certificate-authority-in-aws-lambda-f507a620e42>
