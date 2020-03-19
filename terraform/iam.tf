@@ -1,5 +1,9 @@
 data "aws_iam_policy" "aws_lambda_basic_execution" {
-  arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  arn = "${var.aws_lambda_basic_execution_role_arn}"
+}
+
+data "aws_iam_policy" "aws_ssm" {
+  arn = "${var.aws_ssm_managed_instance_core_arn}"
 }
 
 resource "aws_iam_policy" "kms_policy" {
@@ -98,4 +102,9 @@ EOF
 resource "aws_iam_role_policy_attachment" "ec2_instance_role_invoke_bless_lambda" {
   role       = "${aws_iam_role.ec2_instance_role.name}"
   policy_arn = "${aws_iam_policy.bless_lambda_invoke_policy.arn}"
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_instance_ssm" {
+  role       = "${aws_iam_role.ec2_instance_role}"
+  policy_arn = "${data.aws_iam_policy.aws_ssm}"
 }
