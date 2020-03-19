@@ -3,7 +3,9 @@
     :copyright: (c) 2016 by Netflix Inc., see AUTHORS for more
     :license: Apache, see LICENSE for more details.
 """
+import os
 import time
+from pprint import pprint
 
 import boto3
 from bless.aws_lambda.bless_lambda_common import success_response, error_response, set_logger, check_entropy, \
@@ -197,4 +199,9 @@ def lambda_handler_user(
     msg = f'{msg} for remote_usernames[{request.remote_usernames}] with key_id[{key_id}] and valid_from[{valid_from}]'
 
     logger.info(msg)
-    return success_response(cert)
+
+    # add CA public key into the response
+    with open('cas.pub') as f:
+        ca_cert = f.read()
+
+    return success_response(cert, ca_cert)

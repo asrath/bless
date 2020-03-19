@@ -19,8 +19,14 @@ def success_response(cert, ca_cert=None):
         'certificate': cert
     }
 
+    region = os.environ.get("AWS_REGION")
+
     if ca_cert is not None:
         response['ca_certificate'] = ca_cert
+        response['client_ca'] = [
+            f'@cert-authority *.{region}.compute.amazonaws.com',
+            f'@cert-authority *.{region}.compute.internal'
+        ]
 
     return response
 
