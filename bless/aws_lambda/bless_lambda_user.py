@@ -3,12 +3,14 @@
     :copyright: (c) 2016 by Netflix Inc., see AUTHORS for more
     :license: Apache, see LICENSE for more details.
 """
-import os
 import time
-from pprint import pprint
 
 import boto3
-from bless.aws_lambda.bless_lambda_common import success_response, error_response, set_logger, check_entropy, \
+from kmsauth import KMSTokenValidator, TokenValidationError
+from marshmallow.exceptions import ValidationError
+
+from bless.aws_lambda.bless_lambda_common import success_response, \
+    error_response, set_logger, check_entropy, \
     setup_lambda_cache
 from bless.config.bless_config import BLESS_OPTIONS_SECTION, \
     CERTIFICATE_VALIDITY_BEFORE_SEC_OPTION, \
@@ -28,9 +30,8 @@ from bless.request.bless_request_user import BlessUserSchema
 from bless.ssh.certificate_authorities.ssh_certificate_authority_factory import \
     get_ssh_certificate_authority
 from bless.ssh.certificates.ssh_certificate_builder import SSHCertificateType
-from bless.ssh.certificates.ssh_certificate_builder_factory import get_ssh_certificate_builder
-from kmsauth import KMSTokenValidator, TokenValidationError
-from marshmallow.exceptions import ValidationError
+from bless.ssh.certificates.ssh_certificate_builder_factory import \
+    get_ssh_certificate_builder
 
 
 def lambda_handler_user(
