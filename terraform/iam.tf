@@ -72,7 +72,7 @@ resource "aws_iam_policy" "bless_lambda_invoke_policy" {
           "Sid": "VisualEditor0",
           "Effect": "Allow",
           "Action": "lambda:InvokeFunction",
-          "Resource": "arn:aws:lambda:eu-west-1:854849375651:function:SSHCA"
+          "Resource": "arn:aws:lambda:eu-west-1:854849375651:function:${var.function_name}"
       }
   ]
 }
