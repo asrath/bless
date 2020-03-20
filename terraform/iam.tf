@@ -106,5 +106,5 @@ resource "aws_iam_role_policy_attachment" "ec2_instance_role_invoke_bless_lambda
 
 resource "aws_iam_role_policy_attachment" "ec2_instance_ssm" {
   role       = "${aws_iam_role.ec2_instance_role}"
-  policy_arn = "${data.aws_iam_policy.aws_ssm}"
+  policy_arn = "${data.aws_iam_policy.aws_ssm.arn}"
 }
