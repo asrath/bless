@@ -85,7 +85,7 @@ process_lambda_response() {
     error=$(cat "$TMP_OUTPUT_FILE" | jq -r '.errorMessage')
     if [ "$error" == "null" ]; then
         write_signed_cert "$pub_key_path"
-        write_ca_cert_to_known_hosts "$pub_key_path"
+        write_ca_to_known_hosts
     else
         exit_code=2
         >&2 echo "An error has occurred in certificate lambda invocation"
@@ -120,19 +120,26 @@ get_signed_key_path() {
     echo "$signed_key_path"
 }
 
-write_ca_cert_to_known_hosts() {
-    if [ ! -d $(dirname -- "$SSH_KNOWN_HOSTS") ]; then
+write_ca_to_known_hosts() {
+    local ca_pub_key=$(cat "$TMP_OUTPUT_FILE" | jq -r '.ca_pub_key')
+    local client_ca=$(cat "$TMP_OUTPUT_FILE" | jq -r '.client_ca[]')
+    local known_hosts
+
+    # check if there is CA public key in the response
+    if [ "$ca_pub_key" == "null" ]; then
+        echo "No CA public key provided. Skip setting CA"
         return
     fi
 
-    local key_path="$1"
-    local known_hosts
-    local ca_cert=$(cat "$TMP_OUTPUT_FILE" | jq -r '.ca_certificate')
-    local client_ca=$(cat "$TMP_OUTPUT_FILE" | jq -r '.client_ca[]')
+    # if there is no .ssh dir do nothing
+    if [ ! -d $(dirname -- "$SSH_KNOWN_HOSTS") ]; then
+        echo "$(dirname -- "$SSH_KNOWN_HOSTS") not found. Skip setting CA"
+        return
+    fi
 
     # check if cert authority is already set
     if [ -f "$SSH_KNOWN_HOSTS" ]; then
-        echo cat "$SSH_KNOWN_HOSTS" | grep -e "@cert-authority .* $ca_cert"
+        echo cat "$SSH_KNOWN_HOSTS" | grep -e "@cert-authority .* $ca_pub_key"
         if [ $? -eq 0 ]; then
             return
         fi
@@ -147,7 +154,7 @@ write_ca_cert_to_known_hosts() {
     fi
 
     echo "$client_ca" | while read -r ca; do
-        echo "$ca $ca_cert" >> "$SSH_KNOWN_HOSTS"
+        echo "$ca $ca_pub_key" >> "$SSH_KNOWN_HOSTS"
     done
 
     echo "CA key written to $SSH_KNOWN_HOSTS"

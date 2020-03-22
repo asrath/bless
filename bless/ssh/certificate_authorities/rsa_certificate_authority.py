@@ -8,7 +8,7 @@ from bless.ssh.certificate_authorities.ssh_certificate_authority import \
 from bless.ssh.protocol.ssh_protocol import pack_ssh_mpint, pack_ssh_string
 from bless.ssh.public_keys.ssh_public_key import SSHPublicKeyType
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
@@ -56,3 +56,9 @@ class RSACertificateAuthority(SSHCertificateAuthority):
         signature = self.private_key.sign(body, padding.PKCS1v15(), hashes.SHA1())
 
         return self._serialize_signature(signature)
+
+    def get_public_key(self):
+        return self.private_key.public_key().public_bytes(
+            serialization.Encoding.OpenSSH,
+            serialization.PublicFormat.OpenSSH
+        )

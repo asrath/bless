@@ -37,7 +37,7 @@ def main(argv):
         print(len(argv))
         return -1
 
-    ca_cert_path = '/etc/ssh/ssh-ca.pub'
+    ca_public_key_path = '/etc/ssh/ssh-ca.pub'
     region, lambda_function_name, hostnames, public_key_filename, certificate_filename = argv
 
     with open(public_key_filename, 'r') as f:
@@ -84,13 +84,13 @@ def main(argv):
 
     print('Wrote Certificate to: ' + certificate_filename)
 
-    if 'ca_certificate' in payload:
-        ca_cert = payload['ca_certificate']
-        with os.fdopen(os.open(ca_cert_path, os.O_WRONLY | os.O_CREAT, 0o644),
+    if 'ca_pub_key' in payload:
+        ca_public_key = payload['ca_pub_key']
+        with os.fdopen(os.open(ca_public_key_path, os.O_WRONLY | os.O_CREAT, 0o644),
                        'w') as cert_file:
-            cert_file.write(ca_cert)
+            cert_file.write(ca_public_key)
 
-        print('Wrote CA Certificate to: ' + ca_cert_path)
+        print('Wrote CA Certificate to: ' + ca_public_key_path)
 
 
 if __name__ == '__main__':

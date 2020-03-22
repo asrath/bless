@@ -201,8 +201,4 @@ def lambda_handler_user(
 
     logger.info(msg)
 
-    # add CA public key into the response
-    with open('cas.pub') as f:
-        ca_cert = f.read()
-
-    return success_response(cert, ca_cert)
+    return success_response(cert, ca.get_public_key())

@@ -14,15 +14,15 @@ from bless.config.bless_config import BLESS_OPTIONS_SECTION, LOGGING_LEVEL_OPTIO
 global_bless_cache = None
 
 
-def success_response(cert, ca_cert=None):
+def success_response(cert, ca_public_key=None):
     response = {
         'certificate': cert
     }
 
     region = os.environ.get("AWS_REGION")
 
-    if ca_cert is not None:
-        response['ca_certificate'] = ca_cert
+    if ca_public_key is not None:
+        response['ca_pub_key'] = ca_public_key
         response['client_ca'] = [
             f'@cert-authority *.{region}.compute.amazonaws.com',
             f'@cert-authority *.{region}.compute.internal'

@@ -94,13 +94,9 @@ def lambda_handler_host(
     cert_builder.set_key_id(key_id)
     cert = cert_builder.get_cert_file()
 
-    # add CA public key into the response
-    with open('cas.pub') as f:
-        ca_cert = f.read()
-
     logger.info(
         'Issued a server cert to hostnames[{}] with key_id[{}] and '
         'valid_from[{}])'.format(
             request.hostnames, key_id,
             time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(valid_after))))
-    return success_response(cert, ca_cert)
+    return success_response(cert, ca.get_public_key())
