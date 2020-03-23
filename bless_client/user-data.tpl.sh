@@ -75,7 +75,6 @@ setup_sshd() {
 install_aws_tools
 install_bless_client
 
-#curl -s "$METADATA_URL/identity-credentials/ec2/security-credentials/ec2-instance"
 hostnames=$(figure_hostnames)
 
 if [ $(get_http_status_code "$METADATA_URL/public-hostname") -eq 200 ]; then

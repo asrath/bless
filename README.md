@@ -54,13 +54,7 @@ The .zip must contain your lambda code and configurations at the top level of th
 Makefile includes a publish target to package up everything into a deploy-able .zip if they are in
 the expected locations.  You will need to setup your own Python 3.7 lambda to deploy the .zip to.
 
-Previously the AWS Lambda Handler needed to be set to `bless_lambda.lambda_handler`, and this would generate a user 
-cert.  `bless_lambda.lambda_handler` still works for user certs.  `bless_lambda_user.lambda_handler_user` is a handler 
-that can also be used to issue user certificates.
-
-A new handler `bless_lambda_host.lambda_handler_host` has been created to allow for the creation of host SSH certs.
-
-All three handlers exist in the published .zip.
+Use `bless_lambda.lambda_handler` to issue user or host certificates depending on the payload contents.
 
 ### Compiling BLESS Lambda Dependencies
 To deploy code as a Lambda Function, you need to package up all of the dependencies.  You will need to
@@ -72,22 +66,21 @@ BLESS uses a docker container running [Amazon Linux 2](https://hub.docker.com/_/
 ### Protecting the CA Private Key
 - Generate a password protected RSA Private Key in the PEM format:
 ```shell
-$ ssh-keygen -t rsa -b 4096 -m PEM -f cas -C "SSH CA Key"
+$ ssh-keygen -t rsa -b 4096 -m PEM -f KEY_NAME -C "SSH CA Key"
 ```
 - **Note:** OpenSSH Private Key format is not supported.
 - Use KMS to encrypt your password.  You will need a KMS key per region, and you will need to
 encrypt your password for each region.  You can use the AWS CLI like this:
 ```shell
-REGION=eu-west-1
-aws kms create-alias \
+$ REGION=eu-west-1
+$ aws kms create-alias \
             --region $REGION \
-            --alias-name alias/bless \
-            --target-key-id \
-$(aws kms create-key --region $REGION | jq -r .KeyMetadata.KeyId)
+            --alias-name alias/YOUR_KMS_KEY \
+            --target-key-id $(aws kms create-key --region $REGION | jq -r .KeyMetadata.KeyId)
 
-aws kms encrypt \
+$ aws kms encrypt \
     --key-id $(aws kms describe-key --region $REGION --key-id alias/bless | jq -r .KeyMetadata.KeyId) \
-    --plaintext somepassword \
+    --plaintext <YOUR_CA_KEY_PASSWORD_IN_PLAINTEXT> \
     --region $REGION | jq -r .CiphertextBlob
 ```
 
@@ -110,19 +103,19 @@ private keys, which you can now do by setting `bless_ca_ca_private_key_compressi
 - Refer to the the [Example BLESS Config File](bless/config/bless_deploy_example.cfg) and its
 included documentation.
 - Manage your bless_deploy.cfg files outside of this repo.
-- Provide your desired ./lambda_configs/bless_deploy.cfg prior to Publishing a new Lambda .zip
+- Provide your desired `./lambda_configs/bless_deploy.cfg` prior to Publishing a new Lambda .zip
 - The required [Bless CA] option values must be set for your environment.
 - Every option can be changed in the environment. The environment variable name is constructed
 as section_name_option_name (all lowercase, spaces replaced with underscores).
 
 ### Publish Lambda .zip
-- Provide your desired ./lambda_configs/ca_key_name.pem prior to Publishing
+- Provide your desired `./lambda_configs/KEY_NAME` prior to Publishing
 - Provide your desired [BLESS Config File](bless/config/bless_deploy_example.cfg) at
 ./lambda_configs/bless_deploy.cfg prior to Publishing
 - Provide the [compiled dependencies](#compiling-bless-lambda-dependencies) at ./aws_lambda_libs
 - run:
 ```shell
-(venv) $ rm -rf publish && make publish && aws lambda update-function-code --function-name FUNCTION_NAME --zip-file fileb://$(pwd)/publish/bless_lambda.zip
+(venv) $ rm -rf publish && make publish && aws lambda update-function-code --function-name LAMBDA_NAME --zip-file fileb://$(pwd)/publish/bless_lambda.zip
 ```
 
 - deploy ./publish/bless_lambda.zip to AWS via the AWS Console,
@@ -147,7 +140,14 @@ from a system with access to the required [AWS Credentials](http://boto3.readthe
 This client is really just a proof of concept to validate that you have a functional lambda being called with valid
 IAM credentials. 
 
+Using the python script:
+
     (venv) $ ./bless_client.py region lambda_function_name bastion_user remote_usernames <id_rsa.pub to sign> <output id_rsa-cert.pub> [kmsauth] [bastion_user_ip] [bastion_source_ip]
+
+Using the shell script (preferred):
+```shell
+$ ./bless-client.sh REGION LAMBDA_NAME REMOTE_USERNAMES_COMMA_SEPARATED PUB_KEY_PATH
+```
 
 ## Verifying Certificates
 You can inspect the contents of a certificate with ssh-keygen directly:
@@ -157,16 +157,20 @@ You can inspect the contents of a certificate with ssh-keygen directly:
 ## setup cert-authority in clients
 
 ```shell
-REGION=eu-west-1
-echo "@cert-authority *.$REGION.compute.amazonaws.com $(cat /path/to/downloaded/cas.pub)" > ~/.ssh/known_hosts
+$ REGION=eu-west-1
+$ echo "@cert-authority *.$REGION.compute.amazonaws.com $(cat /path/to/downloaded/CA_KEY_NAME.pub)" > ~/.ssh/known_hosts
 ```
 
 ## Enabling BLESS Certificates On Servers
+Using `bless_client\bless_client_host_inside_instance.py` inside the ssh host will sign the host key
+ant output it into `/etc/ssh/ssh_host_rsa_key-cert.pub`
+
 Add the following line to `/etc/ssh/sshd_config`:
 
-    TrustedUserCAKeys /etc/ssh/cas.pub
+    TrustedUserCAKeys /etc/ssh/KEY_NAME.pub
+    HostCertificate /etc/ssh/ssh_host_rsa_key-cert.pub
 
-Add a new file, owned by and only writable by root, at `/etc/ssh/cas.pub` with the contents:
+Add a new file, owned by and only writable by root, at `/etc/ssh/CA_KEY_NAME.pub` with the contents:
 
     ssh-rsa AAAAB3NzaC1yc2EAAAADAQ…  #id_rsa.pub of an SSH CA
     ssh-rsa AAAAB3NzaC1yc2EAAAADAQ…  #id_rsa.pub of an offline SSH CA
