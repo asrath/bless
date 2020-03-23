@@ -22,7 +22,7 @@ def success_response(cert, ca_public_key=None):
     region = os.environ.get("AWS_REGION")
 
     if ca_public_key is not None:
-        response['ca_pub_key'] = ca_public_key
+        response['ca_pub_key'] = str(ca_public_key)
         response['client_ca'] = [
             f'@cert-authority *.{region}.compute.amazonaws.com',
             f'@cert-authority *.{region}.compute.internal'

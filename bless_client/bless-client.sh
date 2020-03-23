@@ -57,23 +57,38 @@ command_installed() {
 request_signed_key() {
     local region="$1"
     local function_name="$2"
-    local remote_usernames="$3"
-    local key_path="$4"
+    local email="$3"
+    local remote_usernames="$4"
+    local key_path="$5"
     local key=$(cat "$key_path")
-    local payload=$(generate_request_payload "$remote_usernames" "$key")
+    local payload=$(generate_request_payload "$email" "$remote_usernames" "$key")
 
-    aws lambda invoke \
-    --invocation-type RequestResponse \
-    --function-name "$function_name" \
-    --region "$region" \
-    --payload "$payload" \
-    "$TMP_OUTPUT_FILE" > /dev/null
+
+
+    # support for awscli v1 and v2
+    if [ ! -z $(aws --version | grep "aws-cli/1.*" || [[ $? == 1 ]]) ]; then
+        aws lambda invoke \
+        --invocation-type RequestResponse \
+        --function-name "$function_name" \
+        --region "$region" \
+        --payload "$payload" \
+        "$TMP_OUTPUT_FILE" > /dev/null
+    else
+        aws lambda invoke \
+        --cli-binary-format raw-in-base64-out \
+        --invocation-type RequestResponse \
+        --function-name "$function_name" \
+        --region "$region" \
+        --payload "$payload" \
+        "$TMP_OUTPUT_FILE" > /dev/null
+    fi
 }
 
 generate_request_payload() {
-    local remote_usernames="$1"
-    local key="$2"
-    echo "{\"bastion_user\": \"$USER\", \"remote_usernames\": \"$remote_usernames\", \"public_key_to_sign\": \"$key\"}"
+    local email="$1"
+    local remote_usernames="$2"
+    local key="$3"
+    echo "{\"bastion_user\": \"$email\", \"remote_usernames\": \"$remote_usernames\", \"public_key_to_sign\": \"$key\"}"
 }
 
 process_lambda_response() {
@@ -140,7 +155,7 @@ write_ca_to_known_hosts() {
     # check if cert authority is already set
     if [ -f "$SSH_KNOWN_HOSTS" ]; then
         echo cat "$SSH_KNOWN_HOSTS" | grep -e "@cert-authority .* $ca_pub_key"
-        if [ $? -eq 0 ]; then
+        if [ ! -z $(cat "$SSH_KNOWN_HOSTS" | grep -e "@cert-authority .* $ca_pub_key" || [[ $? == 1 ]]) ]; then
             return
         fi
 
@@ -161,17 +176,24 @@ write_ca_to_known_hosts() {
 }
 
 main() {
+    if [ $# -lt 5 ]; then
+        echo "Usage $0 <region> <lambda_name> <email> <remote_username> <public_key_path>"
+        return 1
+    fi
+
     local region="$1"
     local function_name="$2"
-    local remote_usernames="$3"
-    local key_path="$4"
+    local email="$3"
+    local remote_usernames="$4"
+    local key_path="$5"
+
 
     if [ ! -f "$key_path" ]; then
          >&2 echo "Public key $key_path not found"
         return 1
     fi
 
-    request_signed_key "$region" "$function_name" "$remote_usernames" "$key_path"
+    request_signed_key "$region" "$function_name" "$email" "$remote_usernames" "$key_path"
     process_lambda_response "$key_path"
 
     return $?

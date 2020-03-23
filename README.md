@@ -69,8 +69,9 @@ BLESS uses a docker container running [Amazon Linux 2](https://hub.docker.com/_/
 $ ssh-keygen -t rsa -b 4096 -m PEM -f KEY_NAME -C "SSH CA Key"
 ```
 - **Note:** OpenSSH Private Key format is not supported.
+- **Note2:** With `awscli` v2 use `--cli-binary-format raw-in-base64-out` flag in all commands (https://docs.aws.amazon.com/cli/latest/userguide/cliv2-migration.html#cliv2-migration-binaryparam)
 - Use KMS to encrypt your password.  You will need a KMS key per region, and you will need to
-encrypt your password for each region.  You can use the AWS CLI like this:
+encrypt your password for each region. You can use the AWS CLI like this:
 ```shell
 $ REGION=eu-west-1
 $ aws kms create-alias \
