@@ -176,6 +176,9 @@ write_ca_to_known_hosts() {
 }
 
 main() {
+    # check requirements
+    check_reqs
+
     if [ $# -lt 5 ]; then
         echo "Usage $0 <region> <lambda_name> <email> <remote_username> <public_key_path>"
         return 1
