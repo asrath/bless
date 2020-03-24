@@ -71,7 +71,9 @@ def lambda_handler_host(
 
     # cert values determined only by lambda and its configs
     current_time = int(time.time())
-    valid_before = current_time + certificate_validity_after_seconds
+    valid_before = None
+    if certificate_validity_after_seconds >= 0:
+        valid_before = current_time + certificate_validity_after_seconds
     valid_after = current_time - certificate_validity_before_seconds
 
     # Build the cert
