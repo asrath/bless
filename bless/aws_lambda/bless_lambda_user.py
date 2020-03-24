@@ -11,7 +11,7 @@ from marshmallow.exceptions import ValidationError
 
 from bless.aws_lambda.bless_lambda_common import success_response, \
     error_response, set_logger, check_entropy, \
-    setup_lambda_cache
+    setup_lambda_cache, validate_remote_usernames_agains_iam_groups
 from bless.config.bless_config import BLESS_OPTIONS_SECTION, \
     CERTIFICATE_VALIDITY_BEFORE_SEC_OPTION, \
     CERTIFICATE_VALIDITY_AFTER_SEC_OPTION, \
@@ -24,7 +24,7 @@ from bless.config.bless_config import BLESS_OPTIONS_SECTION, \
     TEST_USER_OPTION, \
     CERTIFICATE_EXTENSIONS_OPTION, \
     REMOTE_USERNAMES_VALIDATION_OPTION, \
-    IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION, \
+    KMSAUTH_IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION, \
     REMOTE_USERNAMES_BLACKLIST_OPTION
 from bless.request.bless_request_user import BlessUserSchema
 from bless.ssh.certificate_authorities.ssh_certificate_authority_factory import \
@@ -110,6 +110,11 @@ def lambda_handler_user(
         valid_after = current_time - certificate_validity_before_seconds
         bypass_time_validity_check = False
 
+    response = validate_remote_usernames_agains_iam_groups(bless_cache.config, request)
+
+    if response is not None:
+        return response
+
     # Authenticate the user with KMS, if key is setup
     if config.getboolean(KMSAUTH_SECTION, KMSAUTH_USEKMSAUTH_OPTION):
         if request.kmsauth_token:
@@ -127,7 +132,7 @@ def lambda_handler_user(
                     iam = boto3.client('iam')
                     user_groups = iam.list_groups_for_user(UserName=request.bastion_user)
 
-                    group_name_template = config.get(KMSAUTH_SECTION, IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION)
+                    group_name_template = config.get(KMSAUTH_SECTION, KMSAUTH_IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION)
                     for requested_remote in requested_remotes:
                         required_group_name = group_name_template.format(requested_remote)
 

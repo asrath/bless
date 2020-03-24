@@ -116,13 +116,16 @@ as section_name_option_name (all lowercase, spaces replaced with underscores).
 - Provide the [compiled dependencies](#compiling-bless-lambda-dependencies) at ./aws_lambda_libs
 - run:
 ```shell
-(venv) $ rm -rf publish && make publish && aws lambda update-function-code --function-name LAMBDA_NAME --zip-file fileb://$(pwd)/publish/bless_lambda.zip
+(venv) $ make publish
 ```
 
 - deploy ./publish/bless_lambda.zip to AWS via the AWS Console,
 [AWS SDK](http://boto3.readthedocs.io/en/latest/reference/services/lambda.html), or
 [S3](https://aws.amazon.com/blogs/compute/new-deployment-options-for-aws-lambda/)
 - remember to deploy it to all regions.
+```shell
+$ aws lambda update-function-code --function-name LAMBDA_NAME --zip-file fileb://$(pwd)/publish/bless_lambda.zip
+```
 
 
 ### Lambda Requirements
@@ -169,6 +172,7 @@ ant output it into `/etc/ssh/ssh_host_rsa_key-cert.pub`
 Add the following line to `/etc/ssh/sshd_config`:
 
     TrustedUserCAKeys /etc/ssh/KEY_NAME.pub
+    # optional
     HostCertificate /etc/ssh/ssh_host_rsa_key-cert.pub
 
 Add a new file, owned by and only writable by root, at `/etc/ssh/CA_KEY_NAME.pub` with the contents:
@@ -180,7 +184,7 @@ Add a new file, owned by and only writable by root, at `/etc/ssh/CA_KEY_NAME.pub
 To simplify SSH CA Key rotation you should provision multiple CA Keys, and leave them offline until
 you are ready to rotate them.
 
-Additional information about the TrustedUserCAKeys file is [here](https://www.freebsd.org/cgi/man.cgi?sshd_config(5))
+Additional information about the TrustedUserCAKeys file is [here](https://www.freebsd.org/cgi/man.cgi?query=sshd_config)
 
 ## Project resources
 - Source code <https://github.com/netflix/bless>

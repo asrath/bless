@@ -32,7 +32,11 @@ from bless.config.bless_config import BlessConfig, \
     SERVER_CERTIFICATE_VALIDITY_AFTER_SEC_DEFAULT, \
     HOSTNAME_VALIDATION_OPTION, \
     HOSTNAME_VALIDATION_DEFAULT, \
-    VALIDATE_REMOTE_USERNAMES_AGAINST_IAM_GROUPS_OPTION
+    VALIDATE_REMOTE_USERNAMES_AGAINST_IAM_GROUPS_OPTION, \
+    REMOTE_USERNAMES_AGAINST_IAM_GROUPS_OPTION, \
+    REMOTE_USERNAMES_AGAINST_IAM_GROUPS_DEFAULT, \
+    IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION, \
+    IAM_GROUP_NAME_VALIDATION_FORMAT_DEFAULT
 
 
 def test_empty_config():
@@ -133,6 +137,7 @@ def test_config_environment_override(monkeypatch):
         'bless_options_certificate_extensions': 'permit-X11-forwarding',
         'bless_options_username_validation': 'debian',
         'bless_options_remote_usernames_validation': 'useradd',
+        'bless_options_validate_remote_usernames_against_iam_groups': 'False',
 
         'bless_ca_us_east_1_password': '<INSERT_US-EAST-1_KMS_ENCRYPTED_BASE64_ENCODED_PEM_PASSWORD_HERE>',
         'bless_ca_default_password': '<INSERT_DEFAULT_KMS_ENCRYPTED_BASE64_ENCODED_PEM_PASSWORD_HERE>',
@@ -161,6 +166,8 @@ def test_config_environment_override(monkeypatch):
     assert 'debian' == config.get(BLESS_OPTIONS_SECTION, USERNAME_VALIDATION_OPTION)
     assert 'disabled' == config.get(BLESS_OPTIONS_SECTION, HOSTNAME_VALIDATION_OPTION)
     assert 'useradd' == config.get(BLESS_OPTIONS_SECTION, REMOTE_USERNAMES_VALIDATION_OPTION)
+    assert 'False' == config.get(BLESS_OPTIONS_SECTION, REMOTE_USERNAMES_AGAINST_IAM_GROUPS_OPTION)
+    assert 'ssh-{}' == config.get(BLESS_OPTIONS_SECTION, IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION)
 
     assert '<INSERT_US-EAST-1_KMS_ENCRYPTED_BASE64_ENCODED_PEM_PASSWORD_HERE>' == config.getpassword()
     assert '<INSERT_YOUR_ENCRYPTED_PEM_FILE_NAME>' == config.get(BLESS_CA_SECTION, CA_PRIVATE_KEY_FILE_OPTION)
@@ -178,7 +185,8 @@ def test_config_environment_override(monkeypatch):
     "config, region, expected_cert_valid, expected_entropy_min, expected_rand_seed, "
     "expected_host_cert_before_valid, expected_host_cert_after_valid, "
     "expected_log_level, expected_password, expected_username_validation, "
-    "expected_hostname_validation, expected_key_compression",
+    "expected_hostname_validation, expected_iam_groups_validation, expected_iam_groups_validation_format, "
+    "expected_key_compression",
     [
         ((os.path.join(os.path.dirname(__file__), 'minimal.cfg')), 'us-west-2',
          CERTIFICATE_VALIDITY_SEC_DEFAULT,
@@ -189,6 +197,8 @@ def test_config_environment_override(monkeypatch):
          '<INSERT_KMS_ENCRYPTED_BASE64_ENCODED_PEM_PASSWORD_HERE>',
          USERNAME_VALIDATION_DEFAULT,
          HOSTNAME_VALIDATION_DEFAULT,
+         REMOTE_USERNAMES_AGAINST_IAM_GROUPS_DEFAULT,
+         IAM_GROUP_NAME_VALIDATION_FORMAT_DEFAULT,
          CA_PRIVATE_KEY_COMPRESSION_OPTION_DEFAULT
          ),
         ((os.path.join(os.path.dirname(__file__), 'full-zlib.cfg')), 'us-west-2',
@@ -196,6 +206,8 @@ def test_config_environment_override(monkeypatch):
          '<INSERT_US-WEST-2_KMS_ENCRYPTED_BASE64_ENCODED_PEM_PASSWORD_HERE>',
          'debian',
          'disabled',
+         REMOTE_USERNAMES_AGAINST_IAM_GROUPS_DEFAULT,
+         IAM_GROUP_NAME_VALIDATION_FORMAT_DEFAULT,
          'zlib'
          ),
         ((os.path.join(os.path.dirname(__file__), 'full.cfg')), 'us-east-1',
@@ -203,13 +215,16 @@ def test_config_environment_override(monkeypatch):
          '<INSERT_US-EAST-1_KMS_ENCRYPTED_BASE64_ENCODED_PEM_PASSWORD_HERE>',
          'debian',
          'disabled',
+         "False",
+         'ssh-{}',
          'zlib'
          )
     ])
 def test_configs(config, region, expected_cert_valid, expected_entropy_min, expected_rand_seed,
                  expected_host_cert_before_valid, expected_host_cert_after_valid,
                  expected_log_level, expected_password, expected_username_validation,
-                 expected_hostname_validation, expected_key_compression):
+                 expected_hostname_validation, expected_iam_groups_validation, expected_iam_groups_validation_format,
+                 expected_key_compression):
     config = BlessConfig(region, config_file=config)
     assert expected_cert_valid == config.getint(BLESS_OPTIONS_SECTION,
                                                 CERTIFICATE_VALIDITY_BEFORE_SEC_OPTION)
@@ -229,6 +244,10 @@ def test_configs(config, region, expected_cert_valid, expected_entropy_min, expe
                                                       USERNAME_VALIDATION_OPTION)
     assert expected_hostname_validation == config.get(BLESS_OPTIONS_SECTION,
                                                       HOSTNAME_VALIDATION_OPTION)
+    assert expected_iam_groups_validation == config.get(BLESS_OPTIONS_SECTION,
+                                                      REMOTE_USERNAMES_AGAINST_IAM_GROUPS_OPTION)
+    assert expected_iam_groups_validation_format == config.get(BLESS_OPTIONS_SECTION,
+                                                        IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION)
     assert expected_key_compression == config.get(BLESS_CA_SECTION,
                                                   CA_PRIVATE_KEY_COMPRESSION_OPTION)
 
