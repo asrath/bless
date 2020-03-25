@@ -12,6 +12,7 @@ fi
 
 TMP_OUTPUT_FILE="/tmp/lambda_invoke_output.json"
 SSH_KNOWN_HOSTS="$HOME/.ssh/known_hosts"
+INSTALL_CA=${INSTALL_CA:-""}
 
 check_reqs() {
     local missing_reqs=0
@@ -117,7 +118,8 @@ write_signed_cert() {
 
     cat "$TMP_OUTPUT_FILE" | jq -r '.certificate' > "$signed_key_path"
 
-    echo "Signed SSH key written to $signed_key_path"
+    echo -e "Signed SSH key written to $signed_key_path\n"
+    [ ! -z $DEBUG ] && ssh-keygen -L -f "$signed_key_path"
 }
 
 get_signed_key_path() {
@@ -136,6 +138,10 @@ get_signed_key_path() {
 }
 
 write_ca_to_known_hosts() {
+    if [ -z $INSTALL_CA ]; then
+      return
+    fi
+
     local ca_pub_key=$(cat "$TMP_OUTPUT_FILE" | jq -r '.ca_pub_key')
     local client_ca=$(cat "$TMP_OUTPUT_FILE" | jq -r '.client_ca[]')
     local known_hosts
@@ -180,7 +186,7 @@ main() {
     check_reqs
 
     if [ $# -lt 5 ]; then
-        echo "Usage $0 <region> <lambda_name> <email> <remote_username> <public_key_path>"
+        echo "Usage $0 <region> <lambda_name> <aws_user> <remote_username> <public_key_path>"
         return 1
     fi
 

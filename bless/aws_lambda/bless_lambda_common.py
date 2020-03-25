@@ -106,7 +106,7 @@ def validate_remote_usernames_agains_iam_groups(config: BlessConfig, request: Bl
             )
 
             if not user_is_in_group:
-                return error_response('KMSAuthValidationError',
+                return error_response('ValidationError',
                                       'user {} is not in the {} iam group'.format(
                                           request.bastion_user,
                                           required_group_name))
