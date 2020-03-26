@@ -190,3 +190,6 @@ Additional information about the TrustedUserCAKeys file is [here](https://www.fr
 - Source code <https://github.com/netflix/bless>
 - Issue tracker <https://github.com/netflix/bless/issues>
 - Step by step: <https://medium.com/swlh/run-netflix-bless-ssh-certificate-authority-in-aws-lambda-f507a620e42>
+
+## Manual steps to sign SSH keys with CA
+https://gist.github.com/asrath/f9c7a827b4829c24bef316dca6c28299
