@@ -501,7 +501,33 @@ def test_valid_request_with_not_allowed_iam_group(mocker):
                                  entropy_check=False,
                                  config_file=os.path.join(os.path.dirname(__file__),
                                                      'bless-test-iam-group-validation.cfg'))
-    assert output['errorType'] == 'KMSAuthValidationError'
+    assert output['errorType'] == 'ValidationError'
+
+
+def test_valid_request_with_full_access_iam_group(mocker):
+    clientmock = mocker.MagicMock()
+    clientmock.list_groups_for_user.return_value = {"Groups": [{"GroupName": "FullAccessGroup"}]}
+    botomock = mocker.patch('boto3.client')
+    botomock.return_value = clientmock
+    output = lambda_handler_user(VALID_TEST_REQUEST_IAM_ROLE_ALLOWED_REMOTE_USER, context=Context,
+                                 ca_private_key_password=RSA_CA_PRIVATE_KEY_PASSWORD,
+                                 entropy_check=False,
+                                 config_file=os.path.join(os.path.dirname(__file__),
+                                                     'bless-test-iam-group-validation.cfg'))
+    assert output['certificate'].startswith('ssh-rsa-cert-v01@openssh.com ')
+
+
+def test_valid_request_with_not_allowed_iam_group_and_not_full_access_group(mocker):
+    clientmock = mocker.MagicMock()
+    clientmock.list_groups_for_user.return_value = {"Groups": [{"GroupName": "FullAccessGroup"}]}
+    botomock = mocker.patch('boto3.client')
+    botomock.return_value = clientmock
+    output = lambda_handler_user(VALID_TEST_REQUEST_IAM_ROLE_ALLOWED_REMOTE_USER, context=Context,
+                                 ca_private_key_password=RSA_CA_PRIVATE_KEY_PASSWORD,
+                                 entropy_check=False,
+                                 config_file=os.path.join(os.path.dirname(__file__),
+                                                     'bless-test-iam-group-validation-without-full-access-group.cfg'))
+    assert output['errorType'] == 'ValidationError'
 
 
 def test_invalid_request_with_mismatched_bastion_and_remote():

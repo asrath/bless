@@ -11,7 +11,7 @@ from marshmallow.exceptions import ValidationError
 
 from bless.aws_lambda.bless_lambda_common import success_response, \
     error_response, set_logger, check_entropy, \
-    setup_lambda_cache, validate_remote_usernames_agains_iam_groups
+    setup_lambda_cache, validate_remote_usernames_against_iam_groups
 from bless.config.bless_config import BLESS_OPTIONS_SECTION, \
     CERTIFICATE_VALIDITY_BEFORE_SEC_OPTION, \
     CERTIFICATE_VALIDITY_AFTER_SEC_OPTION, \
@@ -110,7 +110,7 @@ def lambda_handler_user(
         valid_after = current_time - certificate_validity_before_seconds
         bypass_time_validity_check = False
 
-    response = validate_remote_usernames_agains_iam_groups(bless_cache.config, request)
+    response = validate_remote_usernames_against_iam_groups(bless_cache.config, request)
 
     if response is not None:
         return response

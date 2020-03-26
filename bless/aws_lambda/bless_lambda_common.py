@@ -87,12 +87,21 @@ def setup_lambda_cache(ca_private_key_password, config_file):
     return bless_cache
 
 
-def validate_remote_usernames_agains_iam_groups(config: BlessConfig, request: BlessUserRequest):
+def validate_remote_usernames_against_iam_groups(config: BlessConfig, request: BlessUserRequest):
     requested_remotes = request.remote_usernames.split(',')
     if config.getboolean(bless_config.BLESS_OPTIONS_SECTION,
                          bless_config.REMOTE_USERNAMES_AGAINST_IAM_GROUPS_OPTION):
         iam = boto3.client('iam')
         user_groups = iam.list_groups_for_user(UserName=request.bastion_user)
+
+        iam_group_with_full_access = config.get(bless_config.BLESS_OPTIONS_SECTION,
+                                                bless_config.FULL_ACCESS_IAM_GROUP_NAME_OPTION)
+
+        # if full access iam group is set then check if the user belongs to the group
+        if iam_group_with_full_access != bless_config.FULL_ACCESS_IAM_GROUP_NAME_DEFAULT:
+            for group in user_groups['Groups']:
+                if group['GroupName'] == iam_group_with_full_access:
+                    return None
 
         group_name_template = config.get(bless_config.BLESS_OPTIONS_SECTION,
                                          bless_config.IAM_GROUP_NAME_VALIDATION_FORMAT_OPTION)
