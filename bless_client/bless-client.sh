@@ -1,12 +1,12 @@
 #!/bin/bash
 
+# https://gist.github.com/asrath/7b8ce01bd92d650fe914b83d0dfa3ab4
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-DEBUG=${DEBUG:-""}
-if [ ! -z $DEBUG ]; then
+if [ ! -z ${TRACE+x} ]; then
   set -o xtrace
 fi
 
@@ -55,16 +55,18 @@ command_installed() {
     fi
 }
 
+get_current_iam_user() {
+    aws iam get-user | jq -r '.User.UserName'
+}
+
 request_signed_key() {
     local region="$1"
     local function_name="$2"
-    local email="$3"
+    local iam_user="$3"
     local remote_usernames="$4"
     local key_path="$5"
     local key=$(cat "$key_path")
-    local payload=$(generate_request_payload "$email" "$remote_usernames" "$key")
-
-
+    local payload=$(generate_request_payload "$iam_user" "$remote_usernames" "$key")
 
     # support for awscli v1 and v2
     if [ ! -z $(aws --version | grep "aws-cli/1.*" || [[ $? == 1 ]]) ]; then
@@ -86,14 +88,15 @@ request_signed_key() {
 }
 
 generate_request_payload() {
-    local email="$1"
+    local iam_user="$1"
     local remote_usernames="$2"
     local key="$3"
-    echo "{\"bastion_user\": \"$email\", \"remote_usernames\": \"$remote_usernames\", \"public_key_to_sign\": \"$key\"}"
+    echo "{\"bastion_user\": \"$iam_user\", \"remote_usernames\": \"$remote_usernames\", \"public_key_to_sign\": \"$key\"}"
 }
 
 process_lambda_response() {
     local pub_key_path="$1"
+    local install_ca=$2
     local client_ca
     local error
     local exit_code=0
@@ -101,7 +104,7 @@ process_lambda_response() {
     error=$(cat "$TMP_OUTPUT_FILE" | jq -r '.errorMessage')
     if [ "$error" == "null" ]; then
         write_signed_cert "$pub_key_path"
-        write_ca_to_known_hosts
+        [ $install_ca -gt 0 ] && write_ca_to_known_hosts
     else
         exit_code=2
         >&2 echo "An error has occurred in certificate lambda invocation"
@@ -119,7 +122,7 @@ write_signed_cert() {
     cat "$TMP_OUTPUT_FILE" | jq -r '.certificate' > "$signed_key_path"
 
     echo -e "Signed SSH key written to $signed_key_path\n"
-    [ ! -z $DEBUG ] && ssh-keygen -L -f "$signed_key_path"
+    [ ! -z ${DEBUG+x} ] && ssh-keygen -L -f "$signed_key_path"
 }
 
 get_signed_key_path() {
@@ -181,20 +184,62 @@ write_ca_to_known_hosts() {
     echo "CA key written to $SSH_KNOWN_HOSTS"
 }
 
+usage () {
+    echo "usage: $0 [-hc] [--help] [--install-ca] [--region <region>] <lambda_name> <remote_username> <public_key_path>"
+    echo " "
+    echo "options:"
+    echo -e "--help -h \t\t This help"
+    echo -e "--install-ca -c \t Install certificate authority in known hosts file"
+    echo -e "--region \t\t AWS region where the lambda function is located. Defaults to awscli default region"
+}
+
 main() {
     # check requirements
     check_reqs
 
-    if [ $# -lt 5 ]; then
-        echo "Usage $0 <region> <lambda_name> <aws_user> <remote_username> <public_key_path>"
+    # read the options from cli input
+    TEMP=$(getopt --options h --longoptions help,install-ca,region: -n $0 -- "$@")
+    eval set -- "${TEMP}"
+
+    # default region to awscli default
+    local region=$(aws configure get region)
+    local install_ca=0
+
+    # extract options and their arguments into variables.
+    while true; do
+        case "$1" in
+            -h | --help)
+                usage
+                return 0
+                ;;
+            -c | --install-ca)
+                install_ca=1
+                ;;
+            --region)
+                region="$2";
+                [ ${region:0:1} == "-" ] && echo "$1 requires a valid value" && return 1
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                echo "Unrecognized option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    if [ $# -lt 3 ]; then
+        usage
         return 1
     fi
 
-    local region="$1"
-    local function_name="$2"
-    local email="$3"
-    local remote_usernames="$4"
-    local key_path="$5"
+    local function_name="$1"
+    local remote_usernames="$2"
+    local key_path="$3"
+    local iam_user
 
 
     if [ ! -f "$key_path" ]; then
@@ -202,8 +247,9 @@ main() {
         return 1
     fi
 
-    request_signed_key "$region" "$function_name" "$email" "$remote_usernames" "$key_path"
-    process_lambda_response "$key_path"
+    iam_user=$(get_current_iam_user)
+    request_signed_key "$region" "$function_name" "$iam_user" "$remote_usernames" "$key_path"
+    process_lambda_response "$key_path" $install_ca
 
     return $?
 }
